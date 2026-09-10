@@ -50,6 +50,7 @@ GSC_PROPERTY=sc-domain:example.com
 GA4_PROPERTY_ID=123456789
 GOOGLE_OAUTH_CLIENT_ID=1234567890-example.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=replace-me
+SITE_SIGNAL_DATA_DIR=/absolute/path/to/private/site-signal-data
 ```
 
 `GA4_PROPERTY_ID` is the numeric reporting property ID, **not** a `G-...` Measurement ID. Tokens, cache, SQLite database, and reports default to `~/.site-signal`, outside your repository.
@@ -62,6 +63,26 @@ site-signal report
 ```
 
 The OAuth flow requests only `webmasters.readonly` and `analytics.readonly`. GSC dates use Pacific time; GA4 uses the property timezone.
+
+## Keep your local installation up to date
+
+The public repository is the canonical codebase. Keep your credentials in a private env file outside the clone, then run the public clone against that file:
+
+```sh
+cd site-signal
+git pull --ff-only
+npm install
+npm run build
+node --env-file=/secure/path/secret.env dist/cli.js doctor
+```
+
+For a local MCP configuration, run the same built executable with the same private env file:
+
+```sh
+node --env-file=/secure/path/secret.env /absolute/path/to/site-signal/dist/cli.js mcp
+```
+
+This keeps one codebase for you and everyone else. Do not copy your env file, OAuth token, snapshots, or reports into the repository. If you previously used `PRIVATE_SITE_DATA_DIR`, Site Signal accepts it as a legacy alias so an existing private data directory and OAuth token can be reused; use `SITE_SIGNAL_DATA_DIR` for new setups.
 
 ## Demo and MCP
 
