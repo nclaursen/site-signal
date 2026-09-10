@@ -7,6 +7,7 @@ Site Signal helps answer a deliberately narrow question: *which pages are worth 
 ## What it does
 
 - Fetches finalized GSC page performance for two equivalent 28-day periods.
+- Shows bounded, side-by-side GSC query examples for a selected page and highlights observed movement.
 - Fetches GA4 landing-page/session-source rows separately.
 - Normalizes URLs before comparing sources; retains the underlying source scope.
 - Creates a deterministic local Markdown + JSON report of review-gated changes.
@@ -72,11 +73,11 @@ For a local MCP host, run:
 site-signal mcp
 ```
 
-The v0.1 MCP tools are `get_site_status`, `find_content_opportunities`, and `generate_local_report`.
+The MCP tools are `get_site_status`, `find_content_opportunities`, `get_page_context`, and `generate_local_report`.
 
 ## Interpretation rules
 
-The report returns fewer opportunities when data is sparse. Current gates require at least 100 impressions in either comparison period. A page’s query evidence is illustrative, not a complete total; high impressions plus low CTR is not automatically a title problem. Before changing a page, inspect the query mix, position, reader intent, and implementation context.
+The report returns fewer opportunities when data is sparse. Current gates require at least 100 impressions in either comparison period. Use `site-signal page https://example.com/page/` to inspect the selected page's current and prior query examples. Query evidence is illustrative, not a complete total: the GSC API returns top rows and may withhold low-volume data. High impressions plus low CTR is not automatically a title problem. Before changing a page, inspect the query mix, position, reader intent, and implementation context.
 
 ## Privacy and security
 

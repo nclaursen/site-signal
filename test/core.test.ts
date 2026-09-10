@@ -1,3 +1,4 @@
-import{describe,it,expect}from'vitest';import{candidates,normalize}from'../src/core.js';
+import{describe,it,expect}from'vitest';import{candidates,normalize,queryChanges}from'../src/core.js';
 describe('normalization',()=>it('removes configured tracking parameters but preserves meaningful values',()=>expect(normalize('https://example.com/A?utm_source=x&q=y#top',{domain:'example.com',trackingParams:['utm_source']}as any)).toBe('/A?q=y')));
 describe('candidate selection',()=>it('requires an impression gate and retains absolute change',()=>{const r=candidates([{url:'/a',clicks:2,impressions:110,ctr:0,position:9}],[{url:'/a',clicks:6,impressions:100,ctr:0,position:8}]);expect(r).toMatchObject([{url:'/a',clickChange:-4,impressionChange:10}])}));
+describe('query movement',()=>it('does not invent a position change for a missing period',()=>{const r=queryChanges([{query:'new query',clicks:1,impressions:8,ctr:.125,position:6}],[]);expect(r[0]).toMatchObject({baseline:'new/no baseline',positionChange:null})}));
