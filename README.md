@@ -1,6 +1,6 @@
 # Site Signal
 
-**A local-first Google Search Console + GA4 content-opportunity CLI and stdio MCP server.**
+**A local-first Google Search Console + GA4 or Matomo content-opportunity CLI and stdio MCP server.**
 
 Site Signal helps answer a deliberately narrow question: *which pages are worth investigating next, what changed, and what can the data not prove?* It saves reports and snapshots locally, uses no model API, and never changes a website or analytics property.
 
@@ -8,7 +8,7 @@ Site Signal helps answer a deliberately narrow question: *which pages are worth 
 
 - Fetches finalized GSC page performance for two equivalent 28-day periods.
 - Shows bounded, side-by-side GSC query examples for a selected page and highlights observed movement.
-- Fetches GA4 landing-page/session-source rows separately.
+- Fetches provider-specific page and acquisition evidence separately: GA4 or Matomo.
 - Normalizes URLs before comparing sources; retains the underlying source scope.
 - Creates a deterministic local Markdown + JSON report of review-gated changes.
 - Exposes local status, opportunity discovery, and report generation over stdio MCP.
@@ -16,7 +16,7 @@ Site Signal helps answer a deliberately narrow question: *which pages are worth 
 ## What it does **not** do
 
 - Publish content, change tags/events, or send data to a third party.
-- Claim GSC clicks equal GA4 sessions, or attribute a query to a session/conversion.
+- Claim GSC clicks equal analytics visits/sessions, or attribute a query to a visit, session, or conversion.
 - Reconstruct complete GSC query coverage from top rows.
 - Call an LLM, crawl competitors, or sell an “AI visibility score.”
 
@@ -39,21 +39,23 @@ After the first npm release, `npm install -g site-signal` will also be supported
 
 ## Configure Google access
 
-1. In a Google Cloud project, enable **Google Search Console API** and **Google Analytics Data API**.
+1. In a Google Cloud project, enable **Google Search Console API**. Also enable **Google Analytics Data API** when using GA4.
 2. Configure the OAuth consent screen; if it is External and in testing, add yourself as a test user.
 3. Create an OAuth client of type **Desktop app**.
-4. Put its values and your site settings in a local `.env`:
+4. Put its values and one analytics-provider configuration in a local `.env`:
 
 ```env
+SITE_SIGNAL_PROFILE=example
 SITE_DOMAIN=example.com
 GSC_PROPERTY=sc-domain:example.com
+ANALYTICS_PROVIDER=ga4
 GA4_PROPERTY_ID=123456789
 GOOGLE_OAUTH_CLIENT_ID=1234567890-example.apps.googleusercontent.com
 GOOGLE_OAUTH_CLIENT_SECRET=replace-me
-SITE_SIGNAL_DATA_DIR=/absolute/path/to/private/site-signal-data
+SITE_SIGNAL_DATA_DIR=/absolute/path/to/private/site-signal-data/example
 ```
 
-`GA4_PROPERTY_ID` is the numeric reporting property ID, **not** a `G-...` Measurement ID. Tokens, cache, SQLite database, and reports default to `~/.site-signal`, outside your repository.
+`GA4_PROPERTY_ID` is the numeric reporting property ID, **not** a `G-...` Measurement ID. For Matomo, use `ANALYTICS_PROVIDER=matomo` plus `MATOMO_URL`, `MATOMO_SITE_ID`, and a read-only `MATOMO_TOKEN_AUTH`; see [.env.example](.env.example). Tokens, cache, SQLite database, and reports default to `~/.site-signal`, outside your repository.
 
 ```sh
 site-signal auth
@@ -62,7 +64,13 @@ site-signal sync
 site-signal report
 ```
 
-The OAuth flow requests only `webmasters.readonly` and `analytics.readonly`. GSC dates use Pacific time; GA4 uses the property timezone.
+The OAuth flow requests `webmasters.readonly` and, only for GA4, `analytics.readonly`. GSC dates use Pacific time; GA4 uses the property timezone; verify the timezone behaviour of each Matomo instance with `site-signal doctor`.
+
+## Profiles and MCP
+
+One running Site Signal MCP server represents one site profile and one analytics provider. To use GA4 for one site and Matomo for another, run the same built executable as two named MCP entries, each with its own private env file and `SITE_SIGNAL_DATA_DIR`. Do not share a data directory between profiles.
+
+Every snapshot, report, page-context result, and MCP response identifies its profile and analytics provider. This prevents Matomo visits from being presented as GA4 sessions and prevents snapshots from different sites being mixed.
 
 ## Keep your local installation up to date
 
@@ -98,19 +106,11 @@ The MCP tools are `get_site_status`, `find_content_opportunities`, `get_page_con
 
 ## Interpretation rules
 
-The report returns fewer opportunities when data is sparse. Current gates require at least 100 impressions in either comparison period. Use `site-signal page https://example.com/page/` to inspect the selected page's current and prior query examples. Query evidence is illustrative, not a complete total: the GSC API returns top rows and may withhold low-volume data. High impressions plus low CTR is not automatically a title problem. Before changing a page, inspect the query mix, position, reader intent, and implementation context.
+The report returns fewer opportunities when data is sparse. Current gates require at least 100 impressions in either comparison period. Use `site-signal page https://example.com/page/` to inspect the selected page's current and prior query examples. Query evidence is illustrative, not a complete total: the GSC API returns top rows and may withhold low-volume data. Analytics evidence uses the selected provider's own metric names and scope; it is not query-attributed. High impressions plus low CTR is not automatically a title problem. Before changing a page, inspect the query mix, position, reader intent, and implementation context.
 
-## Future ideas
+## Product direction
 
-These are deliberately scoped additions, not a plan to turn Site Signal into another hosted SEO platform:
-
-- **Page context and internal-link evidence:** bounded live-page extraction, sitemap/repository inventory, and verified contextual-link opportunities.
-- **Action and review log:** explicitly record a proposed change, hypothesis, baseline snapshot, implementation date, review date, and outcome notes—without claiming causality.
-- **Measurement readiness:** distinguish Google Organic, all organic, and identifiable AI referrals; show configured key events and missing measurement.
-- **Low-volume safeguards:** an explicit 84-day comparison, new-page maturation watchlist, and clearer insufficient-evidence states.
-- **Optional repository mapping:** map a verified URL to a content source file and prepare an implementation brief, without editing or publishing it.
-
-Out of scope: rank tracking subscriptions, competitor crawls, automatic rewrites, generic AI-visibility scores, and automated publishing.
+The actively maintained, decision-gated backlog lives in [BACKLOG.md](BACKLOG.md). It is intentionally not a feature roadmap: an item is built only when it improves a specific content decision while preserving Site Signal's local-first, read-only posture.
 
 ## Privacy and security
 
