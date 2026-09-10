@@ -1,0 +1,3 @@
+import{describe,it,expect}from'vitest';import{candidates,normalize}from'../src/core.js';
+describe('normalization',()=>it('removes configured tracking parameters but preserves meaningful values',()=>expect(normalize('https://example.com/A?utm_source=x&q=y#top',{domain:'example.com',trackingParams:['utm_source']}as any)).toBe('/A?q=y')));
+describe('candidate selection',()=>it('requires an impression gate and retains absolute change',()=>{const r=candidates([{url:'/a',clicks:2,impressions:110,ctr:0,position:9}],[{url:'/a',clicks:6,impressions:100,ctr:0,position:8}]);expect(r).toMatchObject([{url:'/a',clickChange:-4,impressionChange:10}])}));

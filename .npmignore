@@ -1,0 +1,5 @@
+.env
+.site-signal/
+fixtures/private/
+test/
+src/

@@ -1,0 +1,27 @@
+{
+  "name": "site-signal",
+  "version": "0.1.0",
+  "description": "A local-first GSC and GA4 content-opportunity CLI and MCP server.",
+  "type": "module",
+  "bin": { "site-signal": "./dist/cli.js" },
+  "files": ["dist", "README.md", "LICENSE", ".env.example"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "demo": "tsx src/cli.ts demo",
+    "doctor": "tsx src/cli.ts doctor",
+    "auth": "tsx src/cli.ts auth",
+    "sync": "tsx src/cli.ts sync",
+    "report": "tsx src/cli.ts report",
+    "mcp": "tsx src/mcp.ts",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": ["google-search-console", "ga4", "seo", "content", "mcp", "local-first"],
+  "license": "MIT",
+  "dependencies": { "@modelcontextprotocol/server": "^2.0.0", "better-sqlite3": "^13.0.3", "dotenv": "^17.4.2", "googleapis": "^178.1.1", "zod": "^4.5.4" },
+  "devDependencies": { "@types/node": "^22.20.2", "tsx": "^4.23.13", "typescript": "^5.9.3", "vitest": "^4.1.5" },
+  "engines": { "node": ">=20" },
+  "repository": { "type": "git", "url": "git+https://github.com/REPLACE_ME/site-signal.git" },
+  "bugs": { "url": "https://github.com/REPLACE_ME/site-signal/issues" },
+  "homepage": "https://github.com/REPLACE_ME/site-signal#readme"
+}
