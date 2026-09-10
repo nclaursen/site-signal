@@ -79,6 +79,18 @@ The MCP tools are `get_site_status`, `find_content_opportunities`, `get_page_con
 
 The report returns fewer opportunities when data is sparse. Current gates require at least 100 impressions in either comparison period. Use `site-signal page https://example.com/page/` to inspect the selected page's current and prior query examples. Query evidence is illustrative, not a complete total: the GSC API returns top rows and may withhold low-volume data. High impressions plus low CTR is not automatically a title problem. Before changing a page, inspect the query mix, position, reader intent, and implementation context.
 
+## Future ideas
+
+These are deliberately scoped additions, not a plan to turn Site Signal into another hosted SEO platform:
+
+- **Page context and internal-link evidence:** bounded live-page extraction, sitemap/repository inventory, and verified contextual-link opportunities.
+- **Action and review log:** explicitly record a proposed change, hypothesis, baseline snapshot, implementation date, review date, and outcome notes—without claiming causality.
+- **Measurement readiness:** distinguish Google Organic, all organic, and identifiable AI referrals; show configured key events and missing measurement.
+- **Low-volume safeguards:** an explicit 84-day comparison, new-page maturation watchlist, and clearer insufficient-evidence states.
+- **Optional repository mapping:** map a verified URL to a content source file and prepare an implementation brief, without editing or publishing it.
+
+Out of scope: rank tracking subscriptions, competitor crawls, automatic rewrites, generic AI-visibility scores, and automated publishing.
+
 ## Privacy and security
 
 Read [SECURITY.md](SECURITY.md). Never commit `.env`, `~/.site-signal`, report files, or OAuth tokens.
