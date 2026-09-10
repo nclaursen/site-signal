@@ -21,7 +21,7 @@
   "dependencies": { "@modelcontextprotocol/server": "^2.0.0", "better-sqlite3": "^13.0.3", "dotenv": "^17.4.2", "googleapis": "^178.1.1", "zod": "^4.5.4" },
   "devDependencies": { "@types/node": "^22.20.2", "tsx": "^4.23.13", "typescript": "^5.9.3", "vitest": "^4.1.5" },
   "engines": { "node": ">=20" },
-  "repository": { "type": "git", "url": "git+https://github.com/REPLACE_ME/site-signal.git" },
-  "bugs": { "url": "https://github.com/REPLACE_ME/site-signal/issues" },
-  "homepage": "https://github.com/REPLACE_ME/site-signal#readme"
+  "repository": { "type": "git", "url": "git+https://github.com/nclaursen/site-signal.git" },
+  "bugs": { "url": "https://github.com/nclaursen/site-signal/issues" },
+  "homepage": "https://github.com/nclaursen/site-signal#readme"
 }

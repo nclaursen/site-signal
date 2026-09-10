@@ -23,19 +23,18 @@ Site Signal helps answer a deliberately narrow question: *which pages are worth 
 
 Requires Node.js 20+.
 
-```sh
-npm install -g site-signal
-# or: npx site-signal demo
-```
-
-For development:
+Clone the repository and run it locally:
 
 ```sh
-git clone https://github.com/REPLACE_ME/site-signal.git
+git clone https://github.com/nclaursen/site-signal.git
 cd site-signal
 npm install
 cp .env.example .env
+npm run build
+npm link
 ```
+
+After the first npm release, `npm install -g site-signal` will also be supported.
 
 ## Configure Google access
 
