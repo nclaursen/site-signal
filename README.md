@@ -10,6 +10,7 @@ Site Signal helps answer a deliberately narrow question: *which pages are worth 
 - Shows bounded, side-by-side GSC query examples for a selected page and highlights observed movement.
 - Fetches provider-specific page and acquisition evidence separately: GA4 or Matomo.
 - Normalizes URLs before comparing sources; retains the underlying source scope.
+- Labels every report and recommended investigation as `ready`, `incomplete_coverage`, `too_fresh`, or `insufficient_evidence`, with the reason shown alongside it.
 - Creates a deterministic local Markdown + JSON report of review-gated changes.
 - Exposes local status, opportunity discovery, and report generation over stdio MCP.
 
@@ -106,7 +107,7 @@ The MCP tools are `get_site_status`, `find_content_opportunities`, `get_page_con
 
 ## Interpretation rules
 
-The report returns fewer opportunities when data is sparse. Current gates require at least 100 impressions in either comparison period. Use `site-signal page https://example.com/page/` to inspect the selected page's current and prior query examples. Query evidence is illustrative, not a complete total: the GSC API returns top rows and may withhold low-volume data. Analytics evidence uses the selected provider's own metric names and scope; it is not query-attributed. High impressions plus low CTR is not automatically a title problem. Before changing a page, inspect the query mix, position, reader intent, and implementation context.
+The report returns fewer opportunities when data is sparse. Current gates require at least 100 impressions in either comparison period. A `ready` state requires GSC page rows to remain within the configured cap and at least a three-day reporting lag. If either comparison source is incomplete, or the lag is shorter, Site Signal shows that state instead of presenting the candidate as decision-ready. Use `site-signal page https://example.com/page/` to inspect the selected page's current and prior query examples. Query evidence is illustrative, not a complete total: the GSC API returns top rows and may withhold low-volume data. Analytics evidence uses the selected provider's own metric names and scope; it is not query-attributed. High impressions plus low CTR is not automatically a title problem. Before changing a page, inspect the query mix, position, reader intent, and implementation context.
 
 ## Product direction
 

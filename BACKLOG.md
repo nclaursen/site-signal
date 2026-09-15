@@ -34,7 +34,9 @@ The implementation contract and live-test checklist are in [docs/analytics-provi
 
 **Decision improved:** Can I trust this comparison enough to spend time investigating it?
 
-The current report records GSC truncation, but it does not make every coverage limitation or data freshness condition prominent in the candidate output. Add clear states such as `ready`, `incomplete coverage`, `too fresh`, and `insufficient evidence`, with the reason beside every affected recommendation. Include GSC row-cap status, analytics-provider coverage, configured reporting lag, and the snapshot's creation time.
+**Status: completed in v0.3.1.** Reports, local JSON, page context, and candidate output now expose `ready`, `incomplete_coverage`, `too_fresh`, or `insufficient_evidence`, along with reporting lag, GSC cap status, analytics coverage, snapshot time, and explicit reasons. A candidate inherits an incomplete or too-fresh state instead of being labelled decision-ready.
+
+The report now makes GSC row-cap status, analytics-provider coverage, configured reporting lag, and snapshot creation time machine-readable and visible in the local artefacts.
 
 **Done when:** a report cannot present a candidate as decision-ready when the underlying comparison is incomplete or prematurely fresh; JSON exposes the same machine-readable reasons.
 
