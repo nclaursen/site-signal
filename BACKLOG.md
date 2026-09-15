@@ -104,6 +104,8 @@ Use the already-created local `actions` table to record a proposed change, hypot
 
 **MCP returns:** the measured page deltas and baseline state across user-selected windows, plus deterministic flags such as `maturing`, repeated decline, repeated growth, or insufficient evidence.
 
+**Status: completed in v0.5.0.** `get_page_lifecycle` returns measured 28-, 56-, and 84-day evidence plus deterministic flags.
+
 **Chat client decides:** whether the pattern matters, what it might mean, and whether to act now.
 
 This is not a lifecycle score or a prediction. It is reusable time-series evidence that prevents a client from treating one short comparison as a trend.
@@ -112,6 +114,8 @@ This is not a lifecycle score or a prediction. It is reusable time-series eviden
 
 **MCP returns:** bounded top GSC queries that appeared, disappeared, or materially moved between periods, including their raw metrics and row-coverage limitation.
 
+**Status: completed in v0.5.0.** `get_query_entry_exit` returns entered, exited, and retained bounded GSC rows for a selected 28–84 day window.
+
 **Chat client decides:** whether those queries form a useful theme, indicate an intent shift, or warrant a content change.
 
 Do not call this complete keyword coverage and do not embed query clustering or editorial interpretation in the server.
@@ -119,6 +123,8 @@ Do not call this complete keyword coverage and do not embed query clustering or 
 ### 5e. Change annotations and review state
 
 **MCP stores and returns:** a user-supplied hypothesis, implementation date, baseline snapshot, review date, status, and notes; it can identify reviews due.
+
+**Status: completed in v0.5.0.** `record_local_action` persists annotations locally and `review_local_actions` returns both all matching actions and reviews due.
 
 **Chat client decides:** how to phrase the hypothesis, what questions to ask before recording it, and how cautiously to interpret later movement.
 
