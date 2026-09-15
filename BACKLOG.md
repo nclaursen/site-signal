@@ -46,6 +46,8 @@ The report now makes GSC row-cap status, analytics-provider coverage, configured
 
 **Decision improved:** Is this movement meaningful, or ordinary noise / a page that has not matured yet?
 
+**Status: completed in v0.4.0.** CLI and MCP calls accept 28 or 84-day windows; pages with fewer than the configured prior-period baseline impressions are labelled `maturing` and monitored rather than treated as established declines.
+
 Offer an explicit 84-day comparison alongside the existing equivalent 28-day periods. Add a `maturing` state for pages without a meaningful prior baseline. Do not blend the windows into a magic score; show both and explain when they disagree.
 
 **Done when:** the user can request a longer comparison and reports label new or low-evidence pages without implying a performance conclusion.
@@ -58,6 +60,8 @@ Offer an explicit 84-day comparison alongside the existing equivalent 28-day per
 
 **Decision improved:** What should I inspect on this page before I propose a change?
 
+**Status: completed in v0.4.0.** `get_page_brief` returns an explicitly chat-first brief with observed movement, bounded hypotheses, limitations, an inspection checklist, and a smallest next check.
+
 Turn the existing raw `page` context into a compact, structured MCP response that an AI client can present directly in chat: period deltas, bounded query examples, analytics-provider acquisition rows, coverage limitations, and a checklist for intent, SERP position, reader need, and implementation context. It must not prescribe a rewrite or claim that a query caused a visit, session, or conversion.
 
 The default is chat-first: return the brief in the tool response and let the user decide what to do next. Write a Markdown or JSON file only when the user explicitly asks to save, share, or hand off the investigation.
@@ -69,6 +73,16 @@ The default is chat-first: return the brief in the tool response and let the use
 ### 5. Action and review log
 
 **Decision improved:** Did we learn something from a deliberate change, and what should we revisit?
+
+**Status: completed in v0.4.0.** Local MCP and CLI actions can record a hypothesis, baseline, implementation and review dates, status, and outcome notes. They never write to the site or claim causal lift.
+
+### 5a. Bounded segment diagnosis
+
+**Status: completed in v0.4.0.** Country, device, and search-appearance rows can be compared for one page over either window. Results remain bounded GSC rows and never claim causality.
+
+### 5b. Setup guidance
+
+**Status: completed in v0.4.0.** `doctor` now separates configuration checks from live checks and returns practical next steps for domain, GSC, and analytics-access failures.
 
 Use the already-created local `actions` table to record a proposed change, hypothesis, linked baseline snapshot, implementation date, review date, status, and outcome notes. Reports should surface actions due for review, but never calculate or claim causal lift.
 

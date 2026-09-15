@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {analyticsProvider} from './analytics.js';
 import {candidates,comparisonReadiness,config,normalize,periods,queryChanges,reportReadiness,snapshotId,Store} from './core.js';
-import {gsc,queryExamples} from './google.js';
+import {gsc,pageSegments,queryExamples} from './google.js';
 
 function withReadiness(snapshot:any,c:any){
   const gscTruncated=Boolean(snapshot.coverage?.gscTruncated);
@@ -10,8 +10,8 @@ function withReadiness(snapshot:any,c:any){
   return {...snapshot,coverage:{...snapshot.coverage,gscTruncated,readiness}};
 }
 
-export async function sync(refresh=false){
-  const c=config(),store=new Store(c.dataDir),range=periods(c.lag),id=snapshotId(c,range.current),saved=store.get(id);
+export async function sync(refresh=false,windowDays=28){
+  if(!Number.isInteger(windowDays)||windowDays<28||windowDays>84)throw Error('windowDays must be a whole number from 28 to 84.');const c=config(),store=new Store(c.dataDir),range=periods(c.lag,windowDays),id=snapshotId(c,range.current),saved=store.get(id);
   if(saved&&!refresh){const snapshot=withReadiness(saved,c);if(!saved.coverage?.readiness)store.save(id,snapshot);return{id,cached:true,...snapshot}}
   const provider=analyticsProvider(c),[a,b,analyticsNow,analyticsBefore]=await Promise.all([gsc(c,range.current),gsc(c,range.previous),provider.landingEvidence(range.current),provider.landingEvidence(range.previous)]);
   const enrich=(rows:any[])=>rows.map(row=>({...row,key:normalize(row.url,c)}));
@@ -20,18 +20,23 @@ export async function sync(refresh=false){
   store.save(id,snapshot);return{id,cached:false,...snapshot};
 }
 
-export async function pageContext(url:string,snapshotIdValue?:string,limit=5){
-  const c=config(),store=new Store(c.dataDir),raw=snapshotIdValue?store.get(snapshotIdValue):await sync();
+export async function pageContext(url:string,snapshotIdValue?:string,limit=5,windowDays=28){
+  const c=config(),store=new Store(c.dataDir),raw=snapshotIdValue?store.get(snapshotIdValue):await sync(false,windowDays);
   if(!raw)throw Error(`No local snapshot found for ${snapshotIdValue}.`);
   if(raw.profile&&raw.profile!==c.profile)throw Error(`Snapshot ${snapshotIdValue} belongs to profile ${raw.profile}, not ${c.profile}.`);
   const r=withReadiness(raw,c),key=normalize(url,c),page=r.gsc.find((row:any)=>row.key===key)||r.previousGsc.find((row:any)=>row.key===key);
   if(!page)throw Error(`No page-level GSC row found for ${url} in this snapshot.`);
   const [current,previous]=await Promise.all([queryExamples(c,r.range.current,page.url,limit),queryExamples(c,r.range.previous,page.url,limit)]);
-  return{profile:c.profile,analyticsProvider:r.analyticsProvider||c.analyticsProvider,snapshotId:snapshotIdValue||r.id,url:page.url,periods:r.range,decisionReadiness:r.coverage.readiness,pagePerformance:{current:r.gsc.find((row:any)=>row.key===key)||null,previous:r.previousGsc.find((row:any)=>row.key===key)||null},analyticsEvidence:{metricLabels:r.analytics.current.metricLabels,current:r.analytics.current.rows.filter((row:any)=>row.key===key),previous:r.analytics.previous.rows.filter((row:any)=>row.key===key),sourceSummaries:{current:r.analytics.current.sourceSummaries,previous:r.analytics.previous.sourceSummaries},coverage:{current:r.analytics.current.coverage,previous:r.analytics.previous.coverage}},queryEvidence:{current,previous,changes:queryChanges(current,previous),limitation:'Examples are limited top GSC rows, not complete coverage, and are not attributed to analytics visits, sessions, or conversions.'}};
+  const prior=r.previousGsc.find((row:any)=>row.key===key);return{profile:c.profile,analyticsProvider:r.analyticsProvider||c.analyticsProvider,snapshotId:snapshotIdValue||r.id,url:page.url,periods:r.range,windowDays,decisionReadiness:prior&&prior.impressions>=c.minimumBaselineImpressions?r.coverage.readiness:{state:'maturing',reasons:[`Prior period has fewer than ${c.minimumBaselineImpressions} impressions.`],reportingLagDays:c.lag},pagePerformance:{current:r.gsc.find((row:any)=>row.key===key)||null,previous:prior||null},analyticsEvidence:{metricLabels:r.analytics.current.metricLabels,current:r.analytics.current.rows.filter((row:any)=>row.key===key),previous:r.analytics.previous.rows.filter((row:any)=>row.key===key),sourceSummaries:{current:r.analytics.current.sourceSummaries,previous:r.analytics.previous.sourceSummaries},coverage:{current:r.analytics.current.coverage,previous:r.analytics.previous.coverage}},queryEvidence:{current,previous,changes:queryChanges(current,previous),limitation:'Examples are limited top GSC rows, not complete coverage, and are not attributed to analytics visits, sessions, or conversions.'}};
 }
 
+export async function pageSegmentContext(url:string,dimension:'country'|'device'|'searchAppearance',limit=10,windowDays=28){const context:any=await pageContext(url,undefined,1,windowDays),c=config(),[current,previous]=await Promise.all([pageSegments(c,context.periods.current,context.url,dimension,limit),pageSegments(c,context.periods.previous,context.url,dimension,limit)]),before=new Map(previous.map(x=>[x.value,x]));return{...context,segmentEvidence:{dimension,current,previous,changes:current.map(x=>({value:x.value,current:x,previous:before.get(x.value)||null,clickChange:x.clicks-(before.get(x.value)?.clicks||0),impressionChange:x.impressions-(before.get(x.value)?.impressions||0)})),limitation:'Segment rows are bounded top GSC rows and do not prove cause.'}}}
+export async function pageBrief(url:string,windowDays=28){const x:any=await pageContext(url,undefined,5,windowDays),a=x.pagePerformance.current,b=x.pagePerformance.previous,change=(a?.clicks||0)-(b?.clicks||0),action=x.decisionReadiness.state==='maturing'?'monitor':'investigate';return{...x,brief:{observed:[`Clicks: ${b?.clicks??0} → ${a?.clicks??0}`,`Impressions: ${b?.impressions??0} → ${a?.impressions??0}`,`Position: ${b?.position?.toFixed?.(1)??'n/a'} → ${a?.position?.toFixed?.(1)??'n/a'}`],whatItMayMean:change<0?'Search visibility declined; inspect query mix and page intent before changing copy.':'No decline diagnosis is implied; inspect the observed movement before acting.',limitations:[...x.decisionReadiness.reasons,x.queryEvidence.limitation],checklist:[change<0?'Check whether the opening answers the falling query theme.':'Check what is driving the observed query growth before changing the page.','Check reader intent and existing contextual links.','Confirm the page source and implementation scope before editing.'],nextCheck:'Inspect the query movement and current opening together.',recommendedAction:action}}}
+export function actionLog(url?:string){return new Store(config().dataDir).actions(url)}
+export function recordAction(input:any){const store=new Store(config().dataDir);return{actionId:store.action(input)}}
+
 export async function report(refresh=false){
-  const r=await sync(refresh),c=config(),list=candidates(r.gsc,r.previousGsc,r.coverage.readiness),readiness=reportReadiness(r.coverage.readiness,list.length);
+  const r=await sync(refresh),c=config(),list=candidates(r.gsc,r.previousGsc,r.coverage.readiness,c),readiness=reportReadiness(r.coverage.readiness,list.length);
   fs.mkdirSync(c.reportDir,{recursive:true,mode:0o700});
   const details=await Promise.all(list.slice(0,3).map(async candidate=>{try{return await pageContext(candidate.url,r.id,5)}catch(error){return{url:candidate.url,error:error instanceof Error?error.message:String(error)}}}));
   const lines=['# Site Signal report','',`Profile: \`${r.profile}\``, `Analytics provider: \`${r.analyticsProvider}\``, `Snapshot: \`${r.id}\` (${r.cached?'cached':'fresh'})`,'',`Periods: ${r.range.current.start}–${r.range.current.end} versus ${r.range.previous.start}–${r.range.previous.end}.`,'','## Evidence readiness','',`- State: ${readiness.state}`,`- Reporting lag: ${readiness.reportingLagDays} complete days`,...readiness.reasons.map((reason:string)=>`- Reason: ${reason}`),'','## Evidence-backed investigations',''];

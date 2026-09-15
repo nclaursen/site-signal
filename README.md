@@ -11,6 +11,8 @@ Site Signal helps answer a deliberately narrow question: *which pages are worth 
 - Fetches provider-specific page and acquisition evidence separately: GA4 or Matomo.
 - Normalizes URLs before comparing sources; retains the underlying source scope.
 - Labels every report and recommended investigation as `ready`, `incomplete_coverage`, `too_fresh`, or `insufficient_evidence`, with the reason shown alongside it.
+- Supports 28- and 84-day comparisons, labels pages without a meaningful baseline as `maturing`, and offers bounded country, device, and search-appearance diagnostics.
+- Returns a chat-first page brief and keeps a local, explicit action/review log.
 - Creates a deterministic local Markdown + JSON report of review-gated changes.
 - Exposes local status, opportunity discovery, and report generation over stdio MCP.
 
@@ -63,6 +65,9 @@ site-signal auth
 site-signal doctor
 site-signal sync
 site-signal report
+site-signal brief https://example.com/page/ --84
+site-signal segments https://example.com/page/ device
+site-signal actions list
 ```
 
 The OAuth flow requests `webmasters.readonly` and, only for GA4, `analytics.readonly`. GSC dates use Pacific time; GA4 uses the property timezone; verify the timezone behaviour of each Matomo instance with `site-signal doctor`.
