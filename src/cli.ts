@@ -1,3 +1,31 @@
 #!/usr/bin/env node
-import 'dotenv/config';import{analyticsProvider}from './analytics.js';import{auth,gsc}from './google.js';import{config}from './core.js';import{actionLog,pageBrief,pageContext,pageSegmentContext,recordAction,report,status,sync}from './service.js';
-const wait=<T>(p:Promise<T>)=>Promise.race([p,new Promise<T>((_,no)=>setTimeout(()=>no(Error('Timed out after 15 seconds')),15000))]),window=(a:string[])=>Number(a.find(x=>x.startsWith('--days='))?.slice(7)|| (a.includes('--84')?84:28)),kv=(a:string[])=>Object.fromEntries(a.map(x=>x.split('=')));const [cmd,...args]=process.argv.slice(2);try{if(cmd==='auth')await auth(config());else if(cmd==='doctor'){const c=config(),p={start:'2025-01-01',end:'2025-01-02'},out:any={...(await status()),checks:{livePage:false,gsc:false,analytics:false},guidance:[]};try{out.checks.livePage=(await wait(fetch(`https://${c.domain}`))).ok}catch{out.guidance.push('Check SITE_DOMAIN and network access.')}try{await wait(gsc(c,p));out.checks.gsc=true}catch{out.guidance.push('Check GSC_PROPERTY, OAuth consent, and Search Console access.')}try{await wait(analyticsProvider(c).landingEvidence(p));out.checks.analytics=true}catch{out.guidance.push('Check the selected analytics provider configuration and read access.')}console.log(JSON.stringify(out,null,2));process.exit(out.configured&&out.checks.livePage&&out.checks.gsc&&out.checks.analytics?0:1)}else if(cmd==='sync')console.log(JSON.stringify(await sync(args.includes('--refresh'),window(args)),null,2));else if(cmd==='report')console.log(await report(args.includes('--refresh')));else if(cmd==='page')console.log(JSON.stringify(await pageContext(args[0],undefined,5,window(args)),null,2));else if(cmd==='brief')console.log(JSON.stringify(await pageBrief(args[0],window(args)),null,2));else if(cmd==='segments')console.log(JSON.stringify(await pageSegmentContext(args[0],args[1]as any,10,window(args)),null,2));else if(cmd==='actions'){const op=args.shift();console.log(op==='list'?actionLog():recordAction(kv(args)))}else if(cmd==='demo')console.log(JSON.stringify({message:'Site Signal is local-first.'},null,2));else if(cmd==='mcp')await import('./mcp.js');else throw Error('Use: doctor | auth | sync [--days=28..84] | report | page URL [--days=28..84] | brief URL [--days=28..84] | segments URL country|device|searchAppearance | actions list|create')}catch(e){console.error(e instanceof Error?e.message:e);process.exit(1)}
+import 'dotenv/config';
+import {analyticsProvider} from './analytics.js';
+import {auth,gsc} from './google.js';
+import {config} from './core.js';
+import {actionLog,findQuestionOpportunities,pageBrief,pageContext,pageSegmentContext,recordAction,report,status,sync} from './service.js';
+
+const wait=<T>(promise:Promise<T>)=>Promise.race([promise,new Promise<T>((_,reject)=>setTimeout(()=>reject(Error('Timed out after 15 seconds')),15000))]);
+const windowDays=(args:string[])=>Number(args.find(arg=>arg.startsWith('--days='))?.slice(7)||(args.includes('--90')?90:args.includes('--60')?60:30));
+const kv=(args:string[])=>Object.fromEntries(args.map(arg=>arg.split('=')));
+const [command,...args]=process.argv.slice(2);
+
+try{
+  if(command==='auth')await auth(config());
+  else if(command==='doctor'){
+    const c=config(),period={start:'2025-01-01',end:'2025-01-02'},output:any={...(await status()),checks:{livePage:false,gsc:false,analytics:false},guidance:[]};
+    try{output.checks.livePage=(await wait(fetch(`https://${c.domain}`))).ok}catch{output.guidance.push('Check SITE_DOMAIN and network access.')}
+    try{await wait(gsc(c,period));output.checks.gsc=true}catch{output.guidance.push('Check GSC_PROPERTY, OAuth consent, and Search Console access.')}
+    try{await wait(analyticsProvider(c).landingEvidence(period));output.checks.analytics=true}catch{output.guidance.push('Check the selected analytics provider configuration and read access.')}
+    console.log(JSON.stringify(output,null,2));process.exit(output.configured&&output.checks.livePage&&output.checks.gsc&&output.checks.analytics?0:1);
+  }else if(command==='sync')console.log(JSON.stringify(await sync(args.includes('--refresh'),windowDays(args)),null,2));
+  else if(command==='report')console.log(await report(args.includes('--refresh'),windowDays(args)));
+  else if(command==='page')console.log(JSON.stringify(await pageContext(args[0],undefined,5,windowDays(args)),null,2));
+  else if(command==='brief')console.log(JSON.stringify(await pageBrief(args[0],windowDays(args)),null,2));
+  else if(command==='segments')console.log(JSON.stringify(await pageSegmentContext(args[0],args[1] as any,10,windowDays(args)),null,2));
+  else if(command==='questions')console.log(JSON.stringify(await findQuestionOpportunities(windowDays(args),Number(args.find(arg=>arg.startsWith('--limit='))?.slice(8)||30)),null,2));
+  else if(command==='actions'){const operation=args.shift();console.log(operation==='list'?actionLog():recordAction(kv(args)))}
+  else if(command==='demo')console.log(JSON.stringify({message:'Site Signal is local-first.'},null,2));
+  else if(command==='mcp')await import('./mcp.js');
+  else throw Error('Use: doctor | auth | sync [--days=30|60|90] | report [--days=30|60|90] | page URL [--days=30|60|90] | brief URL [--days=30|60|90] | segments URL country|device|searchAppearance [--days=30|60|90] | questions [--days=30|60|90] [--limit=30] | actions list|create');
+}catch(error){console.error(error instanceof Error?error.message:error);process.exit(1)}

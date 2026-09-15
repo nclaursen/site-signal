@@ -14,13 +14,37 @@ Do not add an MCP feature unless it returns data or durable local state a client
 
 - **Analytics provider boundary:** GA4, Matomo, and GSC-only setups expose honest provider scope and metric names.
 - **Readiness and freshness:** reports expose incomplete coverage, reporting lag, sparse evidence, and maturing pages rather than overstating a conclusion.
-- **Flexible comparison windows:** 28–84 day comparisons are available through CLI and MCP.
+- **Flexible comparison windows:** 30-, 60-, and 90-day comparisons are available through CLI and MCP.
 - **Page investigation evidence:** raw page context, bounded query evidence, and country/device/search-appearance segments are available for a selected URL.
 - **Lifecycle and query movement:** multi-window page evidence and bounded entered, exited, and retained query rows are available without calling them complete keyword coverage.
 - **Local annotations:** actions, hypotheses, baselines, review dates, and outcome notes can be stored and read locally; no causal lift is claimed.
 - **Measurement readiness:** the MCP can expose configured provider-supported outcomes, organic acquisition context, and identifiable AI-referral rows where the provider supports them.
 - **Optional implementation context:** a configured local repository and/or sitemap can provide verified page mapping and internal-link candidates. Empty or unmapped results are valid.
 - **Release safety:** the public MCP tool contract is documented and covered by a contract test.
+
+## Completed recently — site-wide question discovery
+
+### Surface sparse, question-like Search Console queries
+
+**Decision improved:** Which real questions is the site beginning to surface for, and does the current landing page answer them well enough to justify monitoring, improving an existing answer, or investigating a new content opportunity?
+
+Marketing teams do not only investigate pages with material traffic movement. They also look for early demand signals in low-volume, conversational queries that resemble questions a buyer might ask in search or an LLM interface. The current page-level opportunity gate requires at least 100 impressions and query evidence is only available after a URL has been selected, so this discovery route does not exist today.
+
+Add a bounded site-wide query-and-page evidence tool, provisionally named `find_question_opportunities`, that:
+
+- queries GSC with both `query` and `page` dimensions for the declared current and comparison periods;
+- permits sparse evidence from one impression upward and does not require clicks;
+- supports the 30-, 60-, and 90-day windows, with the 90-day window available for sparse demand discovery;
+- uses transparent, deterministic question-pattern rules for Danish and English, including question words and common conversational formulations;
+- returns the matched query, landing page, clicks, impressions, CTR, position, period-over-period state, and the rule that matched;
+- declares row limits, truncation, and the possibility that GSC withholds low-volume query data;
+- keeps raw evidence separate from the chat client's interpretation of topic relevance, answer quality, priority, and recommended action.
+
+Call these rows **question-like query candidates**, not LLM queries. Search Console can show measured Google queries, but it cannot prove that the same question is asked in ChatGPT or another answer engine.
+
+The tool must not automatically recommend a new page. Before a candidate becomes content work, the client must inspect the mapped landing-page source and classify it as already answered, weakly answered, mismatched, or unsupported by enough evidence.
+
+**Status: completed in v0.6.0.** `find_question_opportunities` returns bounded site-wide candidates with deterministic Danish and English match reasons, raw current/previous metrics, comparison state, and row-cap limitations. It permits zero-click and sparse query rows while preserving the limitation that GSC may withhold low-volume data.
 
 ## Next local setup — decision-gated
 
@@ -30,9 +54,19 @@ Do not add an MCP feature unless it returns data or durable local state a client
 
 **Status:** pending local configuration; no code change is needed.
 
+**Validated by the first live MCP run (2026-09-15):** page-level GSC and GA4 evidence worked, but `get_repository_context` correctly returned that `SITE_SIGNAL_REPOSITORY_PATH` was not configured. The client had to map the selected URLs to source files manually.
+
 Set `SITE_SIGNAL_REPOSITORY_PATH` to the site's local repository. Optionally set `SITE_SIGNAL_SITEMAP_URL` once its canonical URL has been confirmed. These values stay in the private environment file, never in Git.
 
 **Done when:** `get_repository_context` maps a known page to its actual source file, and `get_internal_link_context` returns only traceable candidates.
+
+### Expose optional capability readiness in site status
+
+**Decision improved:** Before starting an investigation, can a client tell which optional evidence sources are available without probing each tool separately?
+
+The first live MCP run returned `configured: true` and an empty `missingSetup` list from `get_site_status`, while repository context was unavailable because `SITE_SIGNAL_REPOSITORY_PATH` was unset. Keep the profile ready for GSC and analytics work, but expose repository, sitemap, and configured-outcome readiness separately from required setup.
+
+**Done when:** `get_site_status` distinguishes required profile readiness from each optional capability, including a machine-readable configured/unconfigured state and a bounded reason. Missing optional context must not make the core profile unavailable.
 
 ### Configure outcome events only when they are meaningful
 
@@ -46,14 +80,6 @@ Set `GA4_OUTCOME_EVENT_NAMES` only for events that represent a meaningful outcom
 
 ## Candidate data primitives — build only when a real decision needs them
 
-### Comparison-window standardisation: 30, 60, and 90 days
-
-**Decision improved:** Is movement meaningful over a familiar editorial and business period?
-
-Replace the current 28–84 day range with explicit 30-, 60-, and 90-day comparison windows. These are easier to explain as one, two, or three months, and 90 days aligns with a quarterly review. Do not silently substitute one window for another; every response must declare the requested window.
-
-**Done when:** CLI and MCP calls accept 30, 60, or 90 days and all snapshots, lifecycle evidence, and documentation use the same vocabulary.
-
 ### Historical snapshot comparison
 
 **Decision improved:** Is the current change persistent, improving, or ordinary variation across several observed periods?
@@ -64,9 +90,23 @@ Return bounded, locally stored snapshot history for a selected page: the last th
 
 ### Typed operational annotations
 
+**Decision improved:** Did a known content, technical, campaign, or tracking change occur inside the evidence window, making a simple period-over-period interpretation unsafe?
+
 Extend local annotations with an optional type such as `content_update`, `technical_change`, `campaign`, `tracking_change`, or `external_event`. Store the user-supplied date and note against a snapshot window. This exposes known context without claiming that it caused observed movement.
 
-**Done when:** a client can retrieve annotations alongside the relevant evidence window, with the original user-entered wording preserved.
+The first live MCP run surfaced a page updated during the current 30-day period. That made the comparison useful for monitoring, but not a clean evaluation of the updated page.
+
+**Done when:** page-level evidence returns relevant annotations that fall inside either comparison window, with the original user-entered wording preserved and no causal claim added.
+
+### Query-example coverage cue
+
+**Decision improved:** Do the bounded query examples account for enough of the page-level movement to support the next investigation step?
+
+The first live MCP run returned page clicks that were not represented in the selected page's displayed query rows. This is valid because query rows are bounded and GSC may withhold low-volume data, but it is easy to misread the examples as a complete explanation.
+
+Start with a contract or presentation change because a client can calculate the displayed subtotal from the existing response. Add a server field only if repeated use shows clients cannot present the limitation consistently.
+
+**Done when:** page investigation output shows the displayed query-row limit and the displayed query click/impression subtotal beside the page total for both periods. Any difference must be labelled as unexplained by the displayed examples, not asserted to be privacy-withheld or absent.
 
 ### Review-period evidence for recorded actions
 
