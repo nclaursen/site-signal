@@ -46,17 +46,63 @@ Set `GA4_OUTCOME_EVENT_NAMES` only for events that represent a meaningful outcom
 
 ## Candidate data primitives — build only when a real decision needs them
 
-### Snapshot annotations beyond editorial actions
+### Comparison-window standardisation: 30, 60, and 90 days
 
-Store user-supplied deployment, tracking, or campaign annotations against a snapshot window. This would help a client show known context alongside observed movement without claiming that the annotation caused the change.
+**Decision improved:** Is movement meaningful over a familiar editorial and business period?
+
+Replace the current 28–84 day range with explicit 30-, 60-, and 90-day comparison windows. These are easier to explain as one, two, or three months, and 90 days aligns with a quarterly review. Do not silently substitute one window for another; every response must declare the requested window.
+
+**Done when:** CLI and MCP calls accept 30, 60, or 90 days and all snapshots, lifecycle evidence, and documentation use the same vocabulary.
+
+### Historical snapshot comparison
+
+**Decision improved:** Is the current change persistent, improving, or ordinary variation across several observed periods?
+
+Return bounded, locally stored snapshot history for a selected page: the last three to six comparable observations, their dates, raw metrics, and coverage state. The MCP must return measured history only; a chat client decides whether it is a trend or seasonality.
+
+**Done when:** a client can compare an investigation against prior local snapshots without re-fetching or pretending that a single period proves a trend.
+
+### Typed operational annotations
+
+Extend local annotations with an optional type such as `content_update`, `technical_change`, `campaign`, `tracking_change`, or `external_event`. Store the user-supplied date and note against a snapshot window. This exposes known context without claiming that it caused observed movement.
+
+**Done when:** a client can retrieve annotations alongside the relevant evidence window, with the original user-entered wording preserved.
+
+### Review-period evidence for recorded actions
+
+**Decision improved:** Has the agreed review date arrived, and what did the evidence look like before and after it?
+
+When an action has a baseline, implementation date, and review date, return the relevant comparable snapshots and coverage state. This is a retrieval aid, not a causal-analysis feature.
+
+**Done when:** a due review includes inspectable before/after evidence while clearly stating its limits.
 
 ### Bounded URL inventory evidence
 
 Return a small, explicit inventory of pages from a configured sitemap or repository, including mapping confidence and gaps. This would support answering “what is covered?” without expanding into a crawler or a hosted dashboard.
 
+**Done when:** a client can list mapped URLs, unmapped URLs, and missing evidence with a declared inventory source and no guessed matches.
+
+### Canonical and redirect evidence
+
+**Decision improved:** Could a canonical, redirect, or response-status issue explain unexpected search data for this URL?
+
+For a user-selected URL, return the observed HTTP status, redirect chain, canonical reference, and retrieval time as raw technical evidence. Keep it bounded to the selected URL; this is not a site crawler or a technical audit score.
+
+**Done when:** the output lets a client inspect a specific mismatch without inferring a fix or crawling the whole site.
+
+### Controlled segment definitions
+
+**Decision improved:** Does an observed change differ meaningfully in a permitted market, device group, or analytics slice?
+
+Allow a profile to define a small approved set of GSC dimensions and provider-supported analytics filters. Each response must retain its source, metric definition, and scope; it must not combine incompatible segments into a synthetic score.
+
+**Done when:** a configured segment can be requested reproducibly and an unavailable or unsupported segment is reported honestly.
+
 ### Configured business-outcome trend snapshots
 
 Persist comparable property-level outcome counts across snapshots for configured events. This would make measurement review more durable while preserving the boundary that GSC queries are not conversion-attributed.
+
+**Done when:** configured event counts can be compared across local snapshots with source scope and coverage shown explicitly.
 
 ## Explicitly not building
 
