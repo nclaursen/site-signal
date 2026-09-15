@@ -2,176 +2,70 @@
 
 This is a decision backlog, not a feature roadmap. Site Signal exists to answer: **what page should I investigate next, why, and what can the data not prove?**
 
-An item is eligible only if it makes that decision more reliable, makes the resulting change easier to review, or prevents an avoidable measurement mistake. Every item must stay local-first and must not publish or change a site, analytics property, or external service.
+An item belongs here only if it makes that decision more reliable, makes a deliberate change easier to review, or prevents an avoidable measurement mistake. Everything remains local-first and read-only: Site Signal never publishes or changes a site, analytics property, or external service.
 
-## Product guardrails
+## Product boundary
 
-- Prefer fewer, evidence-backed investigations over a long ranked list.
-- Keep GSC search evidence, analytics-provider evidence, and editorial judgement explicitly separate.
-- Make uncertainty visible rather than converting it into a score.
-- Produce an inspectable local artefact; do not require a hosted dashboard.
-- A user must remain the decision-maker and implementer.
+The MCP owns authenticated source access, normalized evidence, local snapshots, deterministic coverage flags, and explicit user-recorded state. The chat client owns interpretation: query themes, hypotheses, priorities, briefs, and recommendations.
 
-## MCP boundary: data and local state, not a hidden chat assistant
+Do not add an MCP feature unless it returns data or durable local state a client cannot reliably recreate from one chat turn. The server must not contain prose recommendations, rewrite advice, generic scores, or hidden LLM reasoning.
 
-Site Signal's MCP server owns the parts that must be local, private, durable, and client-independent: authenticated source access, normalized evidence, snapshots, explicit user-recorded state, and deterministic coverage flags.
+## Completed
 
-The chat client owns interpretation: grouping query themes, forming hypotheses, asking follow-up questions, writing briefs, choosing priorities, and discussing what to change. The same Site Signal MCP response should be useful to Codex, Claude, or another compatible client without carrying an embedded consulting voice.
+- **Analytics provider boundary:** GA4, Matomo, and GSC-only setups expose honest provider scope and metric names.
+- **Readiness and freshness:** reports expose incomplete coverage, reporting lag, sparse evidence, and maturing pages rather than overstating a conclusion.
+- **Flexible comparison windows:** 28–84 day comparisons are available through CLI and MCP.
+- **Page investigation evidence:** raw page context, bounded query evidence, and country/device/search-appearance segments are available for a selected URL.
+- **Lifecycle and query movement:** multi-window page evidence and bounded entered, exited, and retained query rows are available without calling them complete keyword coverage.
+- **Local annotations:** actions, hypotheses, baselines, review dates, and outcome notes can be stored and read locally; no causal lift is claimed.
+- **Measurement readiness:** the MCP can expose configured provider-supported outcomes, organic acquisition context, and identifiable AI-referral rows where the provider supports them.
+- **Optional implementation context:** a configured local repository and/or sitemap can provide verified page mapping and internal-link candidates. Empty or unmapped results are valid.
+- **Release safety:** the public MCP tool contract is documented and covered by a contract test.
 
-Build an MCP feature only when it returns data or local state that a client could not reliably recreate from a single chat turn. Do not put prose recommendations, content rewrites, generic scoring, or hidden LLM-style reasoning into the server.
+## Next local setup — decision-gated
 
-## Now — make the data layer portable and safe to act on
+### Configure opt-in repository and sitemap context
 
-### 1. First-class analytics providers (GA4 and Matomo)
+**Decision improved:** Can a chat client point to real, verifiable source context when an approved change needs implementing?
 
-**Decision improved:** Can Site Signal be used against the analytics system the site actually uses?
+**Status:** pending local configuration; no code change is needed.
 
-Keep GSC as the shared search-performance source, but replace the GA4-specific acquisition path with a small analytics-provider boundary. Implement GA4 and Matomo as equal, documented providers. The selected provider must power the entire pipeline: sync, local snapshots, page context, candidate reports, CLI, and MCP—not a separate “Matomo mode” or one-off export.
+Set `SITE_SIGNAL_REPOSITORY_PATH` to the site's local repository. Optionally set `SITE_SIGNAL_SITEMAP_URL` once its canonical URL has been confirmed. These values stay in the private environment file, never in Git.
 
-Normalize only concepts that can be stated honestly across providers: page URL, reporting period, acquisition/referrer context, visits/sessions, engagement-quality metrics where available, and configured outcomes where available. Preserve the provider's original metric names and source scope in all output: a Matomo visit is not a GA4 session. GSC queries remain separate from analytics outcomes.
+**Done when:** `get_repository_context` maps a known page to its actual source file, and `get_internal_link_context` returns only traceable candidates.
 
-The public package should configure this through a provider selection and provider-specific local credentials. Credentials, tokens, snapshots, and reports remain outside the repository. GSC-only must remain a supported, explicit configuration when no analytics source is available. One running MCP server represents exactly one named site profile; two sites run as two server entries with separate environment files and data directories.
+### Configure outcome events only when they are meaningful
 
-**Done when:** a GA4 or Matomo configuration produces the same core Site Signal artefacts and MCP tool responses; each response declares its provider, source scope, metric names, coverage, and unavailable capabilities.
+**Decision improved:** Can the site distinguish search visibility from a measurable business outcome?
 
-**Compatibility gate:** validate the Matomo implementation against the ordinary Reporting API data that a real instance exposes: page URL reports, referrer/organic context, and goals where configured. Optional Matomo modules must enhance output only when present, never become a requirement.
+**Status:** pending a user decision about the real GA4 event names.
 
-The implementation contract and live-test checklist are in [docs/analytics-providers.md](docs/analytics-providers.md).
+Set `GA4_OUTCOME_EVENT_NAMES` only for events that represent a meaningful outcome, such as a confirmed lead or sign-up. Counts remain property-level and are never attributed to individual GSC queries.
 
-### 2. Snapshot coverage and freshness states
+**Done when:** `get_measurement_readiness` can report configured outcome coverage without inventing attribution.
 
-**Decision improved:** Can I trust this comparison enough to spend time investigating it?
+## Candidate data primitives — build only when a real decision needs them
 
-**Status: completed in v0.3.1.** Reports, local JSON, page context, and candidate output now expose `ready`, `incomplete_coverage`, `too_fresh`, or `insufficient_evidence`, along with reporting lag, GSC cap status, analytics coverage, snapshot time, and explicit reasons. A candidate inherits an incomplete or too-fresh state instead of being labelled decision-ready.
+### Snapshot annotations beyond editorial actions
 
-The report now makes GSC row-cap status, analytics-provider coverage, configured reporting lag, and snapshot creation time machine-readable and visible in the local artefacts.
+Store user-supplied deployment, tracking, or campaign annotations against a snapshot window. This would help a client show known context alongside observed movement without claiming that the annotation caused the change.
 
-**Done when:** a report cannot present a candidate as decision-ready when the underlying comparison is incomplete or prematurely fresh; JSON exposes the same machine-readable reasons.
+### Bounded URL inventory evidence
 
-**Why first:** better recommendations are useless if the tool cannot disclose when its evidence is partial.
+Return a small, explicit inventory of pages from a configured sitemap or repository, including mapping confidence and gaps. This would support answering “what is covered?” without expanding into a crawler or a hosted dashboard.
 
-### 3. Longer-window and new-page safeguards
+### Configured business-outcome trend snapshots
 
-**Decision improved:** Is this movement meaningful, or ordinary noise / a page that has not matured yet?
-
-**Status: completed in v0.4.0.** CLI and MCP calls accept 28 or 84-day windows; pages with fewer than the configured prior-period baseline impressions are labelled `maturing` and monitored rather than treated as established declines.
-
-Offer an explicit 84-day comparison alongside the existing equivalent 28-day periods. Add a `maturing` state for pages without a meaningful prior baseline. Do not blend the windows into a magic score; show both and explain when they disagree.
-
-**Done when:** the user can request a longer comparison and reports label new or low-evidence pages without implying a performance conclusion.
-
-**Build only if:** initial use shows that 28-day reports repeatedly surface changes that cannot be assessed from that window alone.
-
-## Next — turn a signal into a reviewable investigation
-
-### 4. Decision-ready page evidence brief
-
-**Decision improved:** What should I inspect on this page before I propose a change?
-
-**Status: completed in v0.4.0.** `get_page_brief` returns an explicitly chat-first brief with observed movement, bounded hypotheses, limitations, an inspection checklist, and a smallest next check.
-
-Turn the existing raw `page` context into a compact, structured MCP response that an AI client can present directly in chat: period deltas, bounded query examples, analytics-provider acquisition rows, coverage limitations, and a checklist for intent, SERP position, reader need, and implementation context. It must not prescribe a rewrite or claim that a query caused a visit, session, or conversion.
-
-The default is chat-first: return the brief in the tool response and let the user decide what to do next. Write a Markdown or JSON file only when the user explicitly asks to save, share, or hand off the investigation.
-
-**Done when:** one MCP call returns a brief that a marketer or editor can review in chat without manually stitching together several JSON blocks; an optional export never becomes a required workflow.
-
-**Why before crawling:** it validates that the existing signal is useful before adding a larger page-inventory surface.
-
-### 5. Action and review log
-
-**Decision improved:** Did we learn something from a deliberate change, and what should we revisit?
-
-**Status: completed in v0.4.0.** Local MCP and CLI actions can record a hypothesis, baseline, implementation and review dates, status, and outcome notes. They never write to the site or claim causal lift.
-
-### 5a. Bounded segment diagnosis
-
-**Status: completed in v0.4.0.** Country, device, and search-appearance rows can be compared for one page over either window. Results remain bounded GSC rows and never claim causality.
-
-### 5b. Setup guidance
-
-**Status: completed in v0.4.0.** `doctor` now separates configuration checks from live checks and returns practical next steps for domain, GSC, and analytics-access failures.
-
-Use the already-created local `actions` table to record a proposed change, hypothesis, linked baseline snapshot, implementation date, review date, status, and outcome notes. Reports should surface actions due for review, but never calculate or claim causal lift.
-
-**Done when:** an action is created and updated locally through CLI/MCP, and its baseline and review context can be retrieved in a report.
-
-**Build only if:** the evidence brief leads to recurring manual changes; otherwise this is process overhead.
-
-## Next data primitives — useful to every MCP client
-
-### 5c. Multi-window lifecycle evidence
-
-**MCP returns:** the measured page deltas and baseline state across user-selected windows, plus deterministic flags such as `maturing`, repeated decline, repeated growth, or insufficient evidence.
-
-**Status: completed in v0.5.0.** `get_page_lifecycle` returns measured 28-, 56-, and 84-day evidence plus deterministic flags.
-
-**Chat client decides:** whether the pattern matters, what it might mean, and whether to act now.
-
-This is not a lifecycle score or a prediction. It is reusable time-series evidence that prevents a client from treating one short comparison as a trend.
-
-### 5d. Query entry and exit evidence
-
-**MCP returns:** bounded top GSC queries that appeared, disappeared, or materially moved between periods, including their raw metrics and row-coverage limitation.
-
-**Status: completed in v0.5.0.** `get_query_entry_exit` returns entered, exited, and retained bounded GSC rows for a selected 28–84 day window.
-
-**Chat client decides:** whether those queries form a useful theme, indicate an intent shift, or warrant a content change.
-
-Do not call this complete keyword coverage and do not embed query clustering or editorial interpretation in the server.
-
-### 5e. Change annotations and review state
-
-**MCP stores and returns:** a user-supplied hypothesis, implementation date, baseline snapshot, review date, status, and notes; it can identify reviews due.
-
-**Status: completed in v0.5.0.** `record_local_action` persists annotations locally and `review_local_actions` returns both all matching actions and reviews due.
-
-**Chat client decides:** how to phrase the hypothesis, what questions to ask before recording it, and how cautiously to interpret later movement.
-
-The server never claims that a recorded change caused a measured outcome.
-
-## Later — add context only where it changes the next action
-
-### 6. Bounded page and internal-link evidence
-
-**Decision improved:** Is an internal-link or on-page context change worth considering for this page?
-
-Start with a deliberately small, verifiable inventory: a supplied sitemap and/or a local repository, plus bounded extraction of a selected live page. Return only links that can be verified in that inventory, including source URL/file and anchor context. No broad crawl and no generic link-opportunity score.
-
-**Done when:** a suggested link can be traced to real source context, and an empty result is an acceptable outcome.
-
-**Build only if:** repeated briefs identify internal linking as the real blocker, rather than title, content, or intent.
-
-### 7. Measurement-readiness audit
-
-**Decision improved:** Can this site measure the outcome it says it cares about?
-
-Show provider-supported configured outcomes, organic-source definitions, identifiable AI-referral rows, and the gaps that make those views unreliable. Keep these as separate measurement lenses—not an “AI visibility” metric—and never infer untracked conversions.
-
-**Done when:** the output distinguishes Google Organic, all organic, and identifiable AI referrals, and names missing configuration or coverage.
-
-**Build only if:** the site's editorial decisions depend on conversion or referral outcomes rather than search demand alone.
-
-### 8. Optional repository mapping and implementation handoff
-
-**Decision improved:** Where would an approved change be made, and what should the implementer receive?
-
-Map a verified URL to a source file only when the user supplies or configures a local repository. Generate an implementation brief with evidence and open questions. Never edit, commit, or publish the file.
-
-**Done when:** each mapping is explicit and verifiable; unmapped URLs remain unmapped rather than guessed.
-
-**Build only if:** the same team repeatedly loses time finding the correct content source after a decision is already approved.
+Persist comparable property-level outcome counts across snapshots for configured events. This would make measurement review more durable while preserving the boundary that GSC queries are not conversion-attributed.
 
 ## Explicitly not building
 
 - Hosted dashboards, scheduled alerts, user accounts, or subscription rank tracking.
 - Competitor crawling or SERP scraping.
-- Automatic content rewrites, title changes, internal-link insertion, commits, or publishing.
-- A generic SEO, AEO, GEO, or AI-visibility score.
-- Attribution claims between GSC queries and analytics visits, sessions, or conversions.
-
-These either create false precision, expand Site Signal into a platform, or remove the human review step that the tool is designed to support.
+- Automatic rewrites, metadata changes, internal-link insertion, commits, or publishing.
+- Generic SEO, AEO, GEO, or AI-visibility scores.
+- Attribution claims from GSC queries to visits, sessions, or conversions.
 
 ## Before starting any item
 
-Write down the real decision it supports, the user who will make that decision, and the evidence that would make the item worth keeping. If the current CLI/report can answer the question with a small documentation or workflow change, do that instead of adding a feature.
+State the real decision it supports, who makes that decision, and what evidence would justify keeping it. If the current MCP response can answer the question with a small workflow or documentation change, prefer that over another feature.
