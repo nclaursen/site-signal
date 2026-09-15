@@ -12,6 +12,14 @@ An item is eligible only if it makes that decision more reliable, makes the resu
 - Produce an inspectable local artefact; do not require a hosted dashboard.
 - A user must remain the decision-maker and implementer.
 
+## MCP boundary: data and local state, not a hidden chat assistant
+
+Site Signal's MCP server owns the parts that must be local, private, durable, and client-independent: authenticated source access, normalized evidence, snapshots, explicit user-recorded state, and deterministic coverage flags.
+
+The chat client owns interpretation: grouping query themes, forming hypotheses, asking follow-up questions, writing briefs, choosing priorities, and discussing what to change. The same Site Signal MCP response should be useful to Codex, Claude, or another compatible client without carrying an embedded consulting voice.
+
+Build an MCP feature only when it returns data or local state that a client could not reliably recreate from a single chat turn. Do not put prose recommendations, content rewrites, generic scoring, or hidden LLM-style reasoning into the server.
+
 ## Now — make the data layer portable and safe to act on
 
 ### 1. First-class analytics providers (GA4 and Matomo)
@@ -89,6 +97,32 @@ Use the already-created local `actions` table to record a proposed change, hypot
 **Done when:** an action is created and updated locally through CLI/MCP, and its baseline and review context can be retrieved in a report.
 
 **Build only if:** the evidence brief leads to recurring manual changes; otherwise this is process overhead.
+
+## Next data primitives — useful to every MCP client
+
+### 5c. Multi-window lifecycle evidence
+
+**MCP returns:** the measured page deltas and baseline state across user-selected windows, plus deterministic flags such as `maturing`, repeated decline, repeated growth, or insufficient evidence.
+
+**Chat client decides:** whether the pattern matters, what it might mean, and whether to act now.
+
+This is not a lifecycle score or a prediction. It is reusable time-series evidence that prevents a client from treating one short comparison as a trend.
+
+### 5d. Query entry and exit evidence
+
+**MCP returns:** bounded top GSC queries that appeared, disappeared, or materially moved between periods, including their raw metrics and row-coverage limitation.
+
+**Chat client decides:** whether those queries form a useful theme, indicate an intent shift, or warrant a content change.
+
+Do not call this complete keyword coverage and do not embed query clustering or editorial interpretation in the server.
+
+### 5e. Change annotations and review state
+
+**MCP stores and returns:** a user-supplied hypothesis, implementation date, baseline snapshot, review date, status, and notes; it can identify reviews due.
+
+**Chat client decides:** how to phrase the hypothesis, what questions to ask before recording it, and how cautiously to interpret later movement.
+
+The server never claims that a recorded change caused a measured outcome.
 
 ## Later — add context only where it changes the next action
 
