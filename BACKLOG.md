@@ -58,9 +58,11 @@ Offer an explicit 84-day comparison alongside the existing equivalent 28-day per
 
 **Decision improved:** What should I inspect on this page before I propose a change?
 
-Turn the existing raw `page` context into a compact local Markdown/JSON brief: period deltas, bounded query examples, analytics-provider acquisition rows, coverage limitations, and a checklist for intent, SERP position, reader need, and implementation context. It must not prescribe a rewrite or claim that a query caused a visit, session, or conversion.
+Turn the existing raw `page` context into a compact, structured MCP response that an AI client can present directly in chat: period deltas, bounded query examples, analytics-provider acquisition rows, coverage limitations, and a checklist for intent, SERP position, reader need, and implementation context. It must not prescribe a rewrite or claim that a query caused a visit, session, or conversion.
 
-**Done when:** one command produces an artefact a marketer or editor can review without manually stitching together several JSON blocks.
+The default is chat-first: return the brief in the tool response and let the user decide what to do next. Write a Markdown or JSON file only when the user explicitly asks to save, share, or hand off the investigation.
+
+**Done when:** one MCP call returns a brief that a marketer or editor can review in chat without manually stitching together several JSON blocks; an optional export never becomes a required workflow.
 
 **Why before crawling:** it validates that the existing signal is useful before adding a larger page-inventory surface.
 
