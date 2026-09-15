@@ -3,6 +3,7 @@ import path from 'node:path';
 import {analyticsProvider} from './analytics.js';
 import {candidates,comparisonReadiness,config,normalize,periods,queryChanges,reportReadiness,snapshotId,Store} from './core.js';
 import {gsc,pageSegments,queryExamples} from './google.js';
+import {internalLinkContext,repositoryContext} from './context.js';
 
 function withReadiness(snapshot:any,c:any){
   const gscTruncated=Boolean(snapshot.coverage?.gscTruncated);
@@ -32,8 +33,11 @@ export async function pageContext(url:string,snapshotIdValue?:string,limit=5,win
 
 export async function pageSegmentContext(url:string,dimension:'country'|'device'|'searchAppearance',limit=10,windowDays=28){const context:any=await pageContext(url,undefined,1,windowDays),c=config(),[current,previous]=await Promise.all([pageSegments(c,context.periods.current,context.url,dimension,limit),pageSegments(c,context.periods.previous,context.url,dimension,limit)]),before=new Map(previous.map(x=>[x.value,x]));return{...context,segmentEvidence:{dimension,current,previous,changes:current.map(x=>({value:x.value,current:x,previous:before.get(x.value)||null,clickChange:x.clicks-(before.get(x.value)?.clicks||0),impressionChange:x.impressions-(before.get(x.value)?.impressions||0)})),limitation:'Segment rows are bounded top GSC rows and do not prove cause.'}}}
 export async function pageBrief(url:string,windowDays=28){const x:any=await pageContext(url,undefined,5,windowDays),a=x.pagePerformance.current,b=x.pagePerformance.previous,change=(a?.clicks||0)-(b?.clicks||0),action=x.decisionReadiness.state==='maturing'?'monitor':'investigate';return{...x,brief:{observed:[`Clicks: ${b?.clicks??0} → ${a?.clicks??0}`,`Impressions: ${b?.impressions??0} → ${a?.impressions??0}`,`Position: ${b?.position?.toFixed?.(1)??'n/a'} → ${a?.position?.toFixed?.(1)??'n/a'}`],whatItMayMean:change<0?'Search visibility declined; inspect query mix and page intent before changing copy.':'No decline diagnosis is implied; inspect the observed movement before acting.',limitations:[...x.decisionReadiness.reasons,x.queryEvidence.limitation],checklist:[change<0?'Check whether the opening answers the falling query theme.':'Check what is driving the observed query growth before changing the page.','Check reader intent and existing contextual links.','Confirm the page source and implementation scope before editing.'],nextCheck:'Inspect the query movement and current opening together.',recommendedAction:action}}}
-export function actionLog(url?:string){return new Store(config().dataDir).actions(url)}
+export function actionLog(url?:string){const store=new Store(config().dataDir);return{actions:store.actions(url),dueForReview:store.due()}}
 export function recordAction(input:any){const store=new Store(config().dataDir);return{actionId:store.action(input)}}
+export async function measurementReadiness(){const r:any=await sync(),rows=[...r.analytics.current.rows,...r.analytics.previous.rows],sources=rows.map((x:any)=>x.acquisition?.value||'');return{profile:r.profile,provider:r.analyticsProvider,lenses:{googleOrganic:sources.some((x:string)=>x.toLowerCase().includes('google / organic')),allOrganic:sources.some((x:string)=>x.toLowerCase().includes('/ organic')),identifiableAiReferrals:sources.filter((x:string)=>/(chatgpt|perplexity|claude|gemini)/i.test(x))},configuredOutcomes:false,gaps:['No cross-provider outcome metric is configured in this release; do not infer conversions.'],limitations:['Source labels remain provider-scoped and are not query-attributed.']}}
+export async function pageRepositoryContext(url:string){return repositoryContext(url)}
+export async function pageInternalLinkContext(url:string){return internalLinkContext(url)}
 
 export async function report(refresh=false){
   const r=await sync(refresh),c=config(),list=candidates(r.gsc,r.previousGsc,r.coverage.readiness,c),readiness=reportReadiness(r.coverage.readiness,list.length);
