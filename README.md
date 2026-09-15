@@ -13,6 +13,7 @@ Site Signal helps answer a deliberately narrow question: *which pages are worth 
 - Labels every report and recommended investigation as `ready`, `incomplete_coverage`, `too_fresh`, or `insufficient_evidence`, with the reason shown alongside it.
 - Supports 28- and 84-day comparisons, labels pages without a meaningful baseline as `maturing`, and offers bounded country, device, and search-appearance diagnostics.
 - Returns a chat-first page brief and keeps a local, explicit action/review log.
+- Exposes raw context, segments, lifecycle evidence, query entry/exit, measurement readiness, and opt-in repository/link context over MCP.
 - Creates a deterministic local Markdown + JSON report of review-gated changes.
 - Exposes local status, opportunity discovery, and report generation over stdio MCP.
 
@@ -70,6 +71,16 @@ site-signal segments https://example.com/page/ device
 site-signal actions list
 ```
 
+For optional local repository and outcome evidence, add these only to your private env file:
+
+```env
+SITE_SIGNAL_REPOSITORY_PATH=/absolute/path/to/site-repository
+SITE_SIGNAL_SITEMAP_URL=https://example.com/sitemap.xml
+GA4_OUTCOME_EVENT_NAMES=generate_lead,form_submit
+```
+
+Repository and sitemap context remain opt-in. GA4 outcome events are returned as selected-period, property-level event counts; they are never attributed to individual Search Console queries.
+
 The OAuth flow requests `webmasters.readonly` and, only for GA4, `analytics.readonly`. GSC dates use Pacific time; GA4 uses the property timezone; verify the timezone behaviour of each Matomo instance with `site-signal doctor`.
 
 ## Profiles and MCP
@@ -108,7 +119,7 @@ For a local MCP host, run:
 site-signal mcp
 ```
 
-The MCP tools are `get_site_status`, `find_content_opportunities`, `get_page_context`, and `generate_local_report`.
+The MCP tools are `get_site_status`, `find_content_opportunities`, `get_page_context`, `get_page_segments`, `get_page_lifecycle`, `get_query_entry_exit`, `get_measurement_readiness`, `get_repository_context`, `get_internal_link_context`, `review_local_actions`, and `record_local_action`.
 
 ## Interpretation rules
 
