@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {analyticsProvider} from './analytics.js';
+import {analyticsProvider,configuredOutcomeEvents} from './analytics.js';
 import {candidates,comparisonReadiness,config,normalize,periods,queryChanges,reportReadiness,snapshotId,Store} from './core.js';
 import {gsc,pageSegments,queryExamples} from './google.js';
 import {internalLinkContext,repositoryContext} from './context.js';
@@ -37,9 +37,9 @@ export async function pageLifecycle(url:string){const c=config(),key=normalize(u
 export async function queryEntryExit(url:string,windowDays=28,limit=20){const x:any=await pageContext(url,undefined,limit,windowDays),changes=x.queryEvidence.changes;return{url:x.url,windowDays,periods:x.periods,entered:changes.filter((q:any)=>q.previous.impressions===0&&q.current.impressions>0),exited:changes.filter((q:any)=>q.current.impressions===0&&q.previous.impressions>0),retained:changes.filter((q:any)=>q.previous.impressions>0&&q.current.impressions>0),limitation:x.queryEvidence.limitation}}
 export function actionLog(url?:string){const store=new Store(config().dataDir);return{actions:store.actions(url),dueForReview:store.due()}}
 export function recordAction(input:any){const store=new Store(config().dataDir);return{actionId:store.action(input)}}
-export async function measurementReadiness(){const r:any=await sync(),rows=[...r.analytics.current.rows,...r.analytics.previous.rows],sources=rows.map((x:any)=>x.acquisition?.value||'');return{profile:r.profile,provider:r.analyticsProvider,lenses:{googleOrganic:sources.some((x:string)=>x.toLowerCase().includes('google / organic')),allOrganic:sources.some((x:string)=>x.toLowerCase().includes('/ organic')),identifiableAiReferrals:sources.filter((x:string)=>/(chatgpt|perplexity|claude|gemini)/i.test(x))},configuredOutcomes:false,gaps:['No cross-provider outcome metric is configured in this release; do not infer conversions.'],limitations:['Source labels remain provider-scoped and are not query-attributed.']}}
+export async function measurementReadiness(){const r:any=await sync(),c=config(),rows=[...r.analytics.current.rows,...r.analytics.previous.rows],sources=rows.map((x:any)=>x.acquisition?.value||''),outcomes=await configuredOutcomeEvents(c,r.range.current);return{profile:r.profile,provider:r.analyticsProvider,lenses:{googleOrganic:sources.some((x:string)=>x.toLowerCase().includes('google / organic')),allOrganic:sources.some((x:string)=>x.toLowerCase().includes('/ organic')),identifiableAiReferrals:sources.filter((x:string)=>/(chatgpt|perplexity|claude|gemini)/i.test(x))},configuredOutcomes:outcomes,gaps:outcomes.available?[]:['Configure GA4_OUTCOME_EVENT_NAMES to inspect explicitly named GA4 events.'],limitations:['Source labels and outcome events remain provider-scoped and are not query-attributed.']}}
 export async function pageRepositoryContext(url:string){return repositoryContext(url)}
-export async function pageInternalLinkContext(url:string){return internalLinkContext(url)}
+export async function pageInternalLinkContext(url:string){const x:any=await pageContext(url,undefined,10);return internalLinkContext(url,x.queryEvidence.current.map((q:any)=>q.query))}
 
 export async function report(refresh=false){
   const r=await sync(refresh),c=config(),list=candidates(r.gsc,r.previousGsc,r.coverage.readiness,c),readiness=reportReadiness(r.coverage.readiness,list.length);
