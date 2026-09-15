@@ -21,6 +21,7 @@ Do not add an MCP feature unless it returns data or durable local state a client
 - **Measurement readiness:** the MCP can expose configured provider-supported outcomes, organic acquisition context, and identifiable AI-referral rows where the provider supports them.
 - **Optional implementation context:** a configured local repository and/or sitemap can provide verified page mapping and internal-link candidates. Empty or unmapped results are valid.
 - **Release safety:** the public MCP tool contract is documented and covered by a contract test.
+- **Source-backed investigation context:** selected pages and question candidates can return bounded local headings and excerpts when a repository path is configured. The chat client evaluates answer quality and proposes any change.
 
 ## Completed recently — site-wide question discovery
 
@@ -45,6 +46,12 @@ Call these rows **question-like query candidates**, not LLM queries. Search Cons
 The tool must not automatically recommend a new page. Before a candidate becomes content work, the client must inspect the mapped landing-page source and classify it as already answered, weakly answered, mismatched, or unsupported by enough evidence.
 
 **Status: completed in v0.6.0.** `find_question_opportunities` returns bounded site-wide candidates with deterministic Danish and English match reasons, raw current/previous metrics, comparison state, and row-cap limitations. It permits zero-click and sparse query rows while preserving the limitation that GSC may withhold low-volume data.
+
+### Source-backed page and question context
+
+**Decision improved:** Does the current landing page already answer a selected question, and what evidence should a chat client use before proposing a change?
+
+**Status: completed in v0.7.0.** `get_page_investigation_context` returns a selected URL's 30-, 60-, or 90-day GSC and provider-scoped analytics evidence, bounded query examples, and optional local source context. `get_question_page_context` adds a selected question. Local source context returns only mapping method, headings, and bounded matching excerpts. The chat client, not the MCP, decides whether the answer is already present, buried, weak, or missing and may then propose copy in chat.
 
 ## Next local setup — decision-gated
 

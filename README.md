@@ -12,6 +12,7 @@ Site Signal helps answer a deliberately narrow question: *which pages are worth 
 - Normalizes URLs before comparing sources; retains the underlying source scope.
 - Labels every report and recommended investigation as `ready`, `incomplete_coverage`, `too_fresh`, or `insufficient_evidence`, with the reason shown alongside it.
 - Supports 30-, 60-, and 90-day comparisons, labels pages without a meaningful baseline as `maturing`, and offers bounded country, device, and search-appearance diagnostics.
+- Returns optional, bounded local source context for a selected page or question when a repository path is configured; a chat client can then assess answer coverage and propose changes.
 - Returns a chat-first page brief and keeps a local, explicit action/review log.
 - Exposes raw context, segments, lifecycle evidence, query entry/exit, measurement readiness, and opt-in repository/link context over MCP.
 - Creates a deterministic local Markdown + JSON report of review-gated changes.
@@ -68,6 +69,8 @@ site-signal sync
 site-signal report
 site-signal brief https://example.com/page/ --90
 site-signal questions --days=90 --limit=30
+site-signal investigate https://example.com/page/ --days=60
+site-signal question-context https://example.com/page/ --question="How do I solve this?" --days=90
 site-signal segments https://example.com/page/ device
 site-signal actions list
 ```
@@ -120,9 +123,11 @@ For a local MCP host, run:
 site-signal mcp
 ```
 
-The MCP tools are `get_site_status`, `find_content_opportunities`, `find_question_opportunities`, `get_page_context`, `get_page_segments`, `get_page_lifecycle`, `get_query_entry_exit`, `get_measurement_readiness`, `get_repository_context`, `get_internal_link_context`, `review_local_actions`, and `record_local_action`.
+The MCP tools are `get_site_status`, `find_content_opportunities`, `find_question_opportunities`, `get_page_context`, `get_page_investigation_context`, `get_question_page_context`, `get_page_segments`, `get_page_lifecycle`, `get_query_entry_exit`, `get_measurement_readiness`, `get_repository_context`, `get_internal_link_context`, `review_local_actions`, and `record_local_action`.
 
 `find_question_opportunities` is a site-wide, bounded GSC query-and-page view for sparse question-like queries. It uses transparent Danish and English text patterns and can include one-impression, zero-click rows. It returns measured Google queries only: it cannot identify questions asked in ChatGPT or another answer engine, and it does not recommend a content action.
+
+`get_page_investigation_context` is the general chat entry point for “inspect this URL over 30, 60, or 90 days.” It combines the selected URL's GSC and provider-scoped analytics evidence with bounded query examples and optional local source headings/excerpts. `get_question_page_context` does the same for a selected question and landing page. Neither tool judges answer quality or writes copy: a chat client does that from the returned evidence.
 
 ## Interpretation rules
 

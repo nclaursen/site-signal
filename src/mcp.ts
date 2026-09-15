@@ -2,12 +2,12 @@ import {McpServer} from '@modelcontextprotocol/server';
 import {serveStdio} from '@modelcontextprotocol/server/stdio';
 import * as z from 'zod/v4';
 import {candidates,config} from './core.js';
-import {actionLog,findQuestionOpportunities,measurementReadiness,pageContext,pageInternalLinkContext,pageLifecycle,pageRepositoryContext,pageSegmentContext,queryEntryExit,recordAction,status,sync} from './service.js';
+import {actionLog,findQuestionOpportunities,measurementReadiness,pageContext,pageInternalLinkContext,pageInvestigationContext,pageLifecycle,pageRepositoryContext,pageSegmentContext,questionPageContext,queryEntryExit,recordAction,status,sync} from './service.js';
 
 const out=(value:unknown)=>({content:[{type:'text' as const,text:JSON.stringify(value,null,2)}]});
 
 serveStdio(()=>{
-  const server=new McpServer({name:'site-signal',version:'0.6.0'});
+  const server=new McpServer({name:'site-signal',version:'0.7.0'});
   const windowDays=z.union([z.literal(30),z.literal(60),z.literal(90)]).optional();
   const action={actionId:z.string().optional(),url:z.string().url(),description:z.string(),hypothesis:z.string(),status:z.enum(['Proposed','Accepted','Dismissed','Implemented','Reviewed']),implementationDate:z.string().optional(),baselineSnapshot:z.string().optional(),reviewDate:z.string().optional(),outcomeNotes:z.string().optional()};
 
@@ -15,6 +15,8 @@ serveStdio(()=>{
   server.registerTool('find_content_opportunities',{description:'Return evidence-backed page candidates.',inputSchema:{refresh:z.boolean().optional(),limit:z.number().int().min(1).max(20).optional(),windowDays}},async input=>{const result=await sync(input.refresh,input.windowDays??30);return out({...result,candidates:candidates(result.gsc,result.previousGsc,result.coverage.readiness,config()).slice(0,input.limit??10)})});
   server.registerTool('find_question_opportunities',{description:'Return bounded, sparse, question-like GSC query-and-page evidence. This does not identify LLM queries or recommend content.',inputSchema:{limit:z.number().int().min(1).max(100).optional(),windowDays}},async input=>out(await findQuestionOpportunities(input.windowDays??90,input.limit??30)));
   server.registerTool('get_page_context',{description:'Return raw bounded page, analytics, and query evidence.',inputSchema:{url:z.string().url(),queryLimit:z.number().int().min(1).max(20).optional(),windowDays}},async input=>out(await pageContext(input.url,undefined,input.queryLimit??5,input.windowDays??30)));
+  server.registerTool('get_page_investigation_context',{description:'Return GSC, GA4/Matomo, bounded query evidence, and optional local source context for one URL. A chat client interprets the evidence and proposes any change.',inputSchema:{url:z.string().url(),windowDays,question:z.string().min(1).optional()}},async input=>out(await pageInvestigationContext(input.url,input.windowDays??30,input.question)));
+  server.registerTool('get_question_page_context',{description:'Return GSC, GA4/Matomo, and optional local source context for a selected question and landing page. This does not assess answer quality or write content.',inputSchema:{url:z.string().url(),question:z.string().min(1),windowDays}},async input=>out(await questionPageContext(input.url,input.question,input.windowDays??90)));
   server.registerTool('get_page_segments',{description:'Return bounded country, device, or search appearance evidence.',inputSchema:{url:z.string().url(),dimension:z.enum(['country','device','searchAppearance']),windowDays}},async input=>out(await pageSegmentContext(input.url,input.dimension,10,input.windowDays??30)));
   server.registerTool('get_page_lifecycle',{description:'Return deterministic multi-window evidence.',inputSchema:{url:z.string().url()}},async input=>out(await pageLifecycle(input.url)));
   server.registerTool('get_query_entry_exit',{description:'Return bounded entered, exited, and retained GSC query rows.',inputSchema:{url:z.string().url(),windowDays}},async input=>out(await queryEntryExit(input.url,input.windowDays??30)));
